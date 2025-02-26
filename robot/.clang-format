@@ -1,0 +1,19 @@
+# We'll use defaults from the LLVM style as a starting point
+BasedOnStyle: LLVM
+
+# Block-level indentation uses spaces
+IndentWidth: 4
+UseTab: Never
+
+# Unix-style line endings
+LineEnding: LF
+
+# All files end with a newline character
+InsertNewlineAtEOF: true
+
+# Break line after 100 columns
+ColumnLimit: 100
+
+# Sort includes but keep blocks separate
+SortIncludes: CaseInsensitive
+IncludeBlocks: Preserve

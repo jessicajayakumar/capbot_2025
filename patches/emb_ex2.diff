@@ -1,0 +1,75 @@
+diff --git a/robot/CMakeLists.txt b/robot/CMakeLists.txt
+index 6983e95..bf50001 100644
+--- a/robot/CMakeLists.txt
++++ b/robot/CMakeLists.txt
+@@ -4,4 +4,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+ project(capbot_firmware)
+ 
+ include_directories(inc)
+-target_sources(app PRIVATE src/main.c src/capbot_board.c src/capbot_motor.c src/ble_rcs.c)
++target_sources(app PRIVATE src/main.c src/capbot_board.c src/capbot_motor.c src/ble_rcs.c src/ble_bas.c)
+diff --git a/robot/inc/capbot_board.h b/robot/inc/capbot_board.h
+index 6b07840..6512460 100644
+--- a/robot/inc/capbot_board.h
++++ b/robot/inc/capbot_board.h
+@@ -65,4 +65,6 @@ int cb_measure_init(void);
+  */
+ int16_t cb_measure_vcap(void);
+ 
++uint8_t cb_battery_level(void);
++
+ #endif /* CAPBOT_BOARD_H */
+diff --git a/robot/src/ble_bas.c b/robot/src/ble_bas.c
+new file mode 100644
+index 0000000..4af8baa
+--- /dev/null
++++ b/robot/src/ble_bas.c
+@@ -0,0 +1,23 @@
++/**
++ * @file ble_bas.c
++ * @author Lowie Deferme <lowie.deferme@kuleuven.be>
++ * @brief Implementation of BLE Battery Service
++ */
++
++#include <zephyr/bluetooth/gatt.h>
++#include <zephyr/bluetooth/uuid.h>
++
++#include "capbot.h"
++
++static ssize_t bas_level_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
++                              uint16_t len, uint16_t offset) {
++    uint8_t level = cb_battery_level();
++    return bt_gatt_attr_read(conn, attr, buf, len, offset, &level, sizeof(level));
++}
++
++BT_GATT_SERVICE_DEFINE(
++    // Battery service
++    bas_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_BAS),
++    // Battery level characteristic
++    BT_GATT_CHARACTERISTIC(BT_UUID_BAS_BATTERY_LEVEL, BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
++                           bas_level_read, NULL, NULL), );
+diff --git a/robot/src/capbot_board.c b/robot/src/capbot_board.c
+index ff51397..8f0beb0 100644
+--- a/robot/src/capbot_board.c
++++ b/robot/src/capbot_board.c
+@@ -155,3 +155,20 @@ int16_t cb_measure_vcap(void) {
+     return (int16_t)buf * 40;
+     ;
+ }
++
++#define V2E(v) (12 * (v) * (v) / 100000) /* CV^2/2 */
++#define VCAP_MAX 3000                    /* mV */
++#define VCAP_MIN 600                     /* mV */
++#define E_MAX V2E(VCAP_MAX)              /* J */
++#define E_MIN V2E(VCAP_MIN)              /* J */
++
++uint8_t cb_battery_level(void) {
++    int16_t vcap = cb_measure_vcap();
++    if (vcap < 0) { // Read error => return 0%
++        return 0;
++    }
++    uint32_t energy = V2E(vcap);
++    energy = MAX(MIN(energy, E_MAX), E_MIN);
++    uint8_t level = (energy - E_MIN) * 100 / (E_MAX - E_MIN);
++    return level;
++}

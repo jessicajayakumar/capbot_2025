@@ -1,0 +1,25 @@
+# Configuration for ruff python linter
+
+line-length = 100
+indent-width = 4
+
+[lint]
+extend-select = [ # See https://docs.astral.sh/ruff/rules for list of rules
+    "F", # Pyflakes
+    "E", # Pycodestyle errors
+    "W", # Pycodestyle warnings
+    "I", # Isort
+    "N", # PEP8 naming
+    "D", # Pydocstyle
+]
+ignore = [
+    "D103", # Missing docstring in public function
+    "D105", # Missing docstring in magic method
+    "D203", # Incorrect blank line before class
+    "D212", # Multi-line summary first line
+]
+
+[format]
+quote-style = "single"
+docstring-code-format = true
+line-ending = "lf"

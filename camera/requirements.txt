@@ -1,0 +1,3 @@
+angles==2.0
+opencv-contrib-python==4.10.0.84
+pyserial==3.5

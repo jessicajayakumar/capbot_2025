@@ -1,0 +1,46 @@
+diff --git a/robot/src/capbot_motor.c b/robot/src/capbot_motor.c
+index 7880f2e..9c003bf 100644
+--- a/robot/src/capbot_motor.c
++++ b/robot/src/capbot_motor.c
+@@ -168,8 +168,8 @@ static int init_motor_io(struct motor *motor, gpio_callback_handler_t hall_isr)
+  * @param pulse_width The width of the PWM pulse
+  */
+ static inline void set_motor_pwm(const struct motor *motor, bool direction, uint32_t pulse_width) {
+-    pwm_set_dt(&(motor->gpio->in_a), PWM_PERIOD, 0);
+-    pwm_set_dt(&(motor->gpio->in_b), PWM_PERIOD, 0);
++    pwm_set_dt(&(motor->gpio->in_a), PWM_PERIOD, direction ? 0 : pulse_width);
++    pwm_set_dt(&(motor->gpio->in_b), PWM_PERIOD, direction ? pulse_width : 0);
+ }
+ 
+ /** @brief Stop a given motor */
+@@ -300,10 +300,26 @@ int cb_motor_init(void) {
+ }
+ 
+ void cb_set_motor_speed(cb_motor_speed_t *speeds) {
+-    set_motor_pwm(&mfl, 0, 0);
+-    set_motor_pwm(&mfr, 0, 0);
+-    set_motor_pwm(&mbl, 0, 0);
+-    set_motor_pwm(&mbr, 0, 0);
++    bool mfl_dir = speeds->front_left > 0;
++    uint32_t mfl_abs = mfl_dir ? speeds->front_left : -speeds->front_left;
++    uint32_t mfl_pulse_width = MIN(MAX(mfl_abs * PWM_PERIOD / 80, 0), PWM_PERIOD);
++    
++    bool mfr_dir = speeds->front_right > 0;
++    uint32_t mfr_abs = mfr_dir ? speeds->front_right : -speeds->front_right;
++    uint32_t mfr_pulse_width = MIN(MAX(mfr_abs * PWM_PERIOD / 80, 0), PWM_PERIOD);
++
++    bool mbl_dir = speeds->back_left > 0;
++    uint32_t mbl_abs = mbl_dir ? speeds->back_left : -speeds->back_left;
++    uint32_t mbl_pulse_width = MIN(MAX(mbl_abs * PWM_PERIOD / 80, 0), PWM_PERIOD);
++
++    bool mbr_dir = speeds->back_right > 0;
++    uint32_t mbr_abs = mbr_dir ? speeds->back_right : -speeds->back_right;
++    uint32_t mbr_pulse_width = MIN(MAX(mbr_abs * PWM_PERIOD / 80, 0), PWM_PERIOD);
++
++    set_motor_pwm(&mfl, mfl_dir, mfl_pulse_width);
++    set_motor_pwm(&mfr, mfr_dir, mfr_pulse_width);
++    set_motor_pwm(&mbl, mbl_dir, mbl_pulse_width);
++    set_motor_pwm(&mbr, mbr_dir, mbr_pulse_width);
+ }
+ 
+ void cb_stop(void) {
